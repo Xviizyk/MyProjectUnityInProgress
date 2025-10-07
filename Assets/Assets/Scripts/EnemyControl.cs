@@ -7,8 +7,8 @@ public class EnemyControl : MonoBehaviour
     public float detectionRadius = 5f;
 
     [Header("Покачивание (вращение)")]
-    public float rotateAmplitude = 10f;   // амплитуда вращения
-    public float rotateFrequency = 2f;    // частота вращения
+    public float rotateAmplitude = 10f;
+    public float rotateFrequency = 2f;
     private float _timer = 1f;
     private Rigidbody2D _rb;
 
