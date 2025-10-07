@@ -5,7 +5,7 @@ public class FollowObject : MonoBehaviour
     public Transform target;
     public float followSpeed = 5f;
     public float fixedZ = 5f;
-
+ 
     void Update()
     {
         if (target != null)
