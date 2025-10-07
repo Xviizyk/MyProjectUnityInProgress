@@ -26,7 +26,7 @@ public class WeaponShooter : MonoBehaviour
     void Start()
     {
         _rb = GetComponent<Rigidbody2D>();
-        _movement = GetComponent<Movement>(); // убедитесь, что скрипт движения есть на объекте
+        _movement = GetComponent<Movement>();
     }
 
     void Update()
@@ -59,7 +59,6 @@ public class WeaponShooter : MonoBehaviour
 
         while (_shooting)
         {
-            // --------- Режим 1 ---------
             if (GunChoosing.mode == 1)
             {
                 if (stats.ammo1 > 0)
@@ -87,7 +86,6 @@ public class WeaponShooter : MonoBehaviour
                     yield return StartCoroutine(Reload());
                 }
             }
-            // --------- Режим 2 ---------
             else if (GunChoosing.mode == 2)
             {
                 if (stats.ammo2 > 0)
