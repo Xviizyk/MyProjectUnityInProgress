@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using Player.MovementLogic;
 
 public class WeaponShooter : MonoBehaviour
 {
@@ -10,7 +11,6 @@ public class WeaponShooter : MonoBehaviour
     [SerializeField] private GameObject arms;
     [SerializeField] public Config config;
     [SerializeField] private Stats stats;
-    [SerializeField] private Movement movement;
     [SerializeField] private Transform firePoint1;
     [SerializeField] private Transform firePoint2;
     [SerializeField] public WeaponMode _currentMode = WeaponMode.AK47;
@@ -18,10 +18,21 @@ public class WeaponShooter : MonoBehaviour
     
     [SerializeField] private Vector2 _currentGunDirection;
     
-    void Start()
+    private bool _isCharacterGrounded = true;
+    private Movement _movement;
+
+    void Awake()
     {
-        SetWeaponActive(_currentMode);
+        _movement = GetComponent<Movement>();
     }
+    private void OnEnable()
+    {
+        if (_movement != null)
+            _movement.OnGroundedStateChanged += isGrounded => _isCharacterGrounded = isGrounded;
+    }
+
+    private void Start() =>
+        SetWeaponActive(_currentMode);
 
     void Update()
     {
@@ -45,18 +56,17 @@ public class WeaponShooter : MonoBehaviour
 
     private void HandleWeaponSwitch()
     {
-        WeaponMode newMode = _currentMode;
+        var newMode = _currentMode;
 
         if (Input.GetKeyDown(KeyCode.Alpha1)) newMode = WeaponMode.Melee;
         else if (Input.GetKeyDown(KeyCode.Alpha2)) newMode = WeaponMode.AK47;
         else if (Input.GetKeyDown(KeyCode.Alpha3)) newMode = WeaponMode.Shotgun;
 
-        if (newMode != _currentMode)
-        {
-            StopCurrentAction();
-            _currentMode = newMode;
-            SetWeaponActive(_currentMode);
-        }
+        if (newMode == _currentMode) return;
+        
+        StopCurrentAction();
+        _currentMode = newMode;
+        SetWeaponActive(_currentMode);
     }
     
     private void HandleShootInput()
@@ -74,21 +84,19 @@ public class WeaponShooter : MonoBehaviour
 
     private void HandleReloadInput()
     {
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            StopCurrentAction();
+        if (!Input.GetKeyDown(KeyCode.R)) return;
+        
+        StopCurrentAction();
             
-            if (CanReload(_currentMode))
-            {
-                _actionCoroutine = StartCoroutine(ReloadAction());
-            }
+        if (CanReload(_currentMode))
+        {
+            _actionCoroutine = StartCoroutine(ReloadAction());
         }
     }
 
     private IEnumerator ShootingLoop()
     {
         while (Input.GetMouseButton(0))
-        {
             if (_currentMode == WeaponMode.AK47)
             {
                 if (stats.ammo1 > 0)
@@ -118,17 +126,16 @@ public class WeaponShooter : MonoBehaviour
                 }
             }
             else
-            {
+            { 
                 break;
             }
-        }
         _actionCoroutine = null;
     }
 
     private IEnumerator ReloadAction()
     {
-        float reloadTime = (_currentMode == WeaponMode.AK47) ? config.AK47_ReloadTime : config.Shotgun_ReloadTime;
-        int maxAmmo = (_currentMode == WeaponMode.AK47) ? config.AK47_MaxAmmo : config.Shotgun_MaxAmmo;
+        var reloadTime = _currentMode == WeaponMode.AK47 ? config.AK47_ReloadTime : config.Shotgun_ReloadTime;
+        var maxAmmo = _currentMode == WeaponMode.AK47 ? config.AK47_MaxAmmo : config.Shotgun_MaxAmmo;
 
         if (_currentMode == WeaponMode.AK47) stats.ammo1 = 0;
         else stats.ammo2 = 0;
@@ -143,25 +150,25 @@ public class WeaponShooter : MonoBehaviour
 
     private void ShootRifle()
     {
-        float spread = config.AK47_BaseSpread;
-        if (movement != null && !movement.isGrounded) spread *= 3f;
+        var spread = config.AK47_BaseSpread;
+        if (!_isCharacterGrounded) spread *= 3f;
         
         Vector2 dir = Quaternion.Euler(0, 0, Random.Range(-spread, spread)) * _currentGunDirection;
         
-        Vector3 bulletSpawnOffset = firePoint1.right * 0.1f; 
+        var bulletSpawnOffset = firePoint1.right * 0.1f; 
         
         FireBullet(dir, config.AK47_BulletPrefab, config.GlobalBulletSpeed, firePoint1, bulletSpawnOffset);
     }
 
     private void ShootShotgun()
     {
-        for (int i = 0; i < config.Shotgun_PelletCount; i++)
+        for (var i = 0; i < config.Shotgun_PelletCount; i++)
         {
-            float spread = Random.Range(-config.Shotgun_MaxSpread, config.Shotgun_MaxSpread);
+            var spread = Random.Range(-config.Shotgun_MaxSpread, config.Shotgun_MaxSpread);
             
             Vector2 dir = Quaternion.Euler(0, 0, spread) * _currentGunDirection;
             
-            Vector3 offset = firePoint2.right * config.Shotgun_XOffset;
+            var offset = firePoint2.right * config.Shotgun_XOffset;
             
             FireBullet(dir, config.Shotgun_BulletPrefab, config.GlobalBulletSpeed, firePoint2, offset);
         }
@@ -182,53 +189,55 @@ public class WeaponShooter : MonoBehaviour
     private void StopCurrentAction()
     {
         if (_actionCoroutine != null)
-        {
             StopCoroutine(_actionCoroutine);
-        }
+        
         _actionCoroutine = null;
     }
 
-    private bool CanReload(WeaponMode mode)
-    {
-        if (mode == WeaponMode.AK47) return stats.ammo1 < config.AK47_MaxAmmo;
-        if (mode == WeaponMode.Shotgun) return stats.ammo2 < config.Shotgun_MaxAmmo;
-        return false;
-    }
+    private bool CanReload(WeaponMode mode) =>
+        mode switch
+        {
+            WeaponMode.AK47 => stats.ammo1 < config.AK47_MaxAmmo,
+            WeaponMode.Shotgun => stats.ammo2 < config.Shotgun_MaxAmmo,
+            _ => false
+        };
 
-    private GameObject GetActiveWeaponObject()
-    {
-        if (_currentMode == WeaponMode.AK47) return AK47;
-        if (_currentMode == WeaponMode.Shotgun) return Shotgun;
-        return null;
-    }
+    private GameObject GetActiveWeaponObject() =>
+        _currentMode switch
+        {
+            WeaponMode.AK47 => AK47,
+            WeaponMode.Shotgun => Shotgun,
+            _ => null
+        };
     
-    private Transform GetActiveFirePoint()
-    {
-        if (_currentMode == WeaponMode.AK47) return firePoint1;
-        if (_currentMode == WeaponMode.Shotgun) return firePoint2;
-        return null;
-    }
+    private Transform GetActiveFirePoint() =>
+        _currentMode switch
+        {
+            WeaponMode.AK47 => firePoint1,
+            WeaponMode.Shotgun => firePoint2,
+            _ => null
+        };
 
     void SetWeaponActive(WeaponMode mode)
     {
-        bool isMelee = (mode == WeaponMode.Melee);
+        var isMelee = (mode == WeaponMode.Melee);
         AK47.SetActive(mode == WeaponMode.AK47);
         Shotgun.SetActive(mode == WeaponMode.Shotgun);
         arms.SetActive(isMelee);
     }
 
-    void RotateWeapon(GameObject weapon, Transform firePoint)
+    private static void RotateWeapon(GameObject weapon, Transform firePoint)
     {
         Vector2 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
         Vector2 weaponPos = weapon.transform.position;
-        Vector2 direction = mouseWorldPos - weaponPos;
-        float angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
+        var direction = mouseWorldPos - weaponPos;
+        var angle = Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg;
         
         weapon.transform.rotation = Quaternion.Euler(0f, 0f, angle);
         
-        Vector3 localScale = weapon.transform.localScale;
+        var localScale = weapon.transform.localScale;
         
-        float flipY = (angle > 90f || angle < -90f) ? -Mathf.Abs(localScale.y) : Mathf.Abs(localScale.y);
+        var flipY = angle is > 90f or < -90f ? -Mathf.Abs(localScale.y) : Mathf.Abs(localScale.y);
         
         weapon.transform.localScale = new Vector3(-Mathf.Abs(localScale.x), flipY, localScale.z);
     }
