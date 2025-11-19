@@ -2,52 +2,60 @@ using UnityEngine;
 
 public class Weapon : MonoBehaviour
 {
-    public WeaponRanged _weaponRanged;
-    public WeaponMelee _weaponMelee;
-    public WeaponThrowing _weaponThrowing;
-    public WeaponMagic _weaponMagic;
-    public WeaponPotion _weaponPotion;
-    [SerializeField] private WeaponType currentWeapon = WeaponType.melee;
+    [SerializeField] private WeaponRanged _weaponRanged;
+    [SerializeField] private WeaponMelee _weaponMelee;
+    [SerializeField] private WeaponThrowing _weaponThrowing;
+    [SerializeField] private WeaponMagic _weaponMagic;
+    [SerializeField] private WeaponPotion _weaponPotion;
+    [SerializeField] private WeaponRotate _weaponRotate;
+
+    [SerializeField] private WeaponType currentWeaponType = WeaponType.Melee;
+    [SerializeField] private Effect currentEffect = Effect.None;
+
+    public GameObject currentWeapon;
+    
 
     public enum WeaponType
     {
-        ranged,
-        melee,
-        throwing,
-        magic,
-        potion
+        Ranged,
+        Melee,
+        Throwing,
+        Magic,
+        Potion
     }
 
     public enum Effect
     {
-        none,
-        fireDamage,
-        slowness,
-        poison,
-        stun,
-        vampirism,
-        blindness
+        None,
+        FireDamage,
+        Slowness,
+        Poison,
+        Stun,
+        Vampirism,
+        Blindness
     }
     
     private void Update()
     {
-        switch(currentWeapon)
+        switch(currentWeaponType)
         {
-            case WeaponType.ranged:
-                _weaponRanged?.privateUpdate();
+            case WeaponType.Ranged:
+                _weaponRanged?.privateUpdate(currentEffect.ToString());
                 break;
-            case WeaponType.melee:
-                _weaponMelee?.privateUpdate();
+            case WeaponType.Melee:
+                _weaponMelee?.privateUpdate(currentEffect.ToString());
                 break;
-            case WeaponType.throwing:
-                _weaponThrowing?.privateUpdate();
+            case WeaponType.Throwing:
+                _weaponThrowing?.privateUpdate(currentEffect.ToString());
                 break;
-            case WeaponType.magic:
-                _weaponMagic?.privateUpdate();
+            case WeaponType.Magic:
+                _weaponMagic?.privateUpdate(currentEffect.ToString());
                 break;
-            case WeaponType.potion:
-                _weaponPotion?.privateUpdate();
+            case WeaponType.Potion:
+                _weaponPotion?.privateUpdate(currentEffect.ToString());
                 break;
         }
+
+        _weaponRotate.currentWeapon = currentWeapon;
     }
 }

@@ -21,7 +21,7 @@ public class WeaponMagic : MonoBehaviour
     [SerializeField] private GameObject WeaponAmmoObject; 
     [SerializeField] private string WeaponAmmoName;
 
-    public void privateUpdate(){
+    public void privateUpdate(string currentEffect){
         
     }
 }

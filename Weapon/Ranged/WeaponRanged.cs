@@ -1,50 +1,81 @@
 using UnityEngine;
 using System.Collections;
+using UnityEngine.InputSystem;
 
 public class WeaponRanged : MonoBehaviour
 {
     [Header("Префабы оружия")]
-    public Weapon w;
     [SerializeField] private GameObject WeaponObject;
     [SerializeField] private Transform muzzlePoint;
 
     [Header("Конфигурация")]
-    [SerializeField] private ulong PlayerSpeedmultiplier;
-    [SerializeField] private ulong Damage;
-    [SerializeField] private ulong SplashDamage;
-    [SerializeField] private ulong SplashRange;
-    [SerializeField] private ushort MaxAmmo; //max ammo
-    [SerializeField] private float ReloadTime; //seconds
-    [SerializeField] private float BetweenFireTime;
+    [Range(0, 2)]
+    [SerializeField] private float PlayerSpeedmultiplier;
+    [Range(0, 100)]
+    [SerializeField] private double Damage;
+    [Range(0, 100)]
+    [SerializeField] private double SplashDamage;
+    [Range(0, 10)]
+    [SerializeField] private float SplashRange;
+    [Range(0, 250)]
+    [SerializeField] private byte MaxAmmo;
+    [Range(0, 10)]
+    [SerializeField] private float ReloadTime;
+    [Range(0, 100)]
     [SerializeField] private float ManaUse;
+    [Range(0, 10)]
     [SerializeField] private float fireRate;
+    [Range(0, 25)]
+    [SerializeField] private byte spread;
 
     [Header("Настройка патронов")]
     [SerializeField] private GameObject WeaponAmmoObject; 
     [SerializeField] private string WeaponAmmoName;
+    [SerializeField] private float bulletLife;
+    [SerializeField] private float bulletSpeed;
 
     [Header("Состояния")]
     [SerializeField] private int currentAmmo;
-    [SerializeField] private bool reloading = false;
-    [SerializeField] private float betweenShot = 0f;
+    [SerializeField] private bool reloading;
+    [SerializeField] private float nextShotTime;
 
-    public void privateUpdate()
+    private bool isReloading;
+    
+    [Header("Инпут система")]
+    [SerializeField] InputActionReference shootInput;
+    [SerializeField] InputActionReference reloadInput;
+
+    private void OnEnable()
     {
-        if (reloading)
+        reloadInput.action.performed += OnReloadPerformed;
+        reloadInput.action.Enable();
+        shootInput.action.Enable();
+    }
+
+    private void OnDisable()
+    {
+        reloadInput.action.performed -= OnReloadPerformed;
+        reloadInput.action.Disable();
+
+        shootInput.action.Disable();
+    }
+    
+    public void privateUpdate(string currentEffect)
+    {
+        if (isReloading)
         {
             return;
         }
 
-        if (Input.GetKeyDown(KeyCode.R))
-        {
-            StartReload();
-            return;
-        }
-
-        if (Input.GetMouseButton(0))
+        if (shootInput.action.IsPressed())
         {
             TryShoot();
         }
+    }
+    
+    private void OnReloadPerformed(InputAction.CallbackContext context)
+    {
+        StartCoroutine(Reload());
     }
 
     void TryShoot()
@@ -57,7 +88,7 @@ public class WeaponRanged : MonoBehaviour
         if (currentAmmo <= 0)
         {
             if (!isReloading){
-                StartReload();
+                StartCoroutine(Reload());
             }
             return;
         }
@@ -69,31 +100,27 @@ public class WeaponRanged : MonoBehaviour
     void Shoot()
     {
         currentAmmo--;
-
+        GameObject projectilePrefab = WeaponAmmoObject;
+        double damage = Damage;
+        double splashDamage = SplashDamage;
+        float splashRange = SplashRange;
         GameObject bullet = Instantiate(projectilePrefab, muzzlePoint.position, muzzlePoint.rotation);
-
-        Projectile proj = bullet.GetComponent<Projectile>();
+        ProjectileRanged proj = bullet.GetComponent<ProjectileRanged>();
         if (proj)
         {
+            proj.lifetime = bulletLife;
+            proj.speed = bulletSpeed;
             proj.damage = damage;
             proj.splashDamage = splashDamage;
             proj.splashRange = splashRange;
-        }
-    }
-
-    void StartReload()
-    {
-        if (!isReloading)
-        {
-            StartCoroutine(Reload());
         }
     }
     
     IEnumerator Reload()
     {
         isReloading = true;
-        yield return new WaitForSeconds(reloadTime);
-        currentAmmo = maxAmmo;
+        yield return new WaitForSeconds(ReloadTime);
+        currentAmmo = MaxAmmo;
         isReloading = false;
     }
 }

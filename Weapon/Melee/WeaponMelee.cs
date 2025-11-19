@@ -1,27 +1,77 @@
 using UnityEngine;
+using System.Collections;
+using UnityEngine.InputSystem;
 
 public class WeaponMelee : MonoBehaviour
 {
-    [Header("Префабы оружия")]
-    public Weapon w;
+    [Header("Визуал")]
     [SerializeField] private GameObject WeaponObject;
-    [SerializeField] private Transform muzzlePoint;
+    [SerializeField] private Transform attackPoint;
 
     [Header("Конфигурация")]
-    [SerializeField] private ulong PlayerSpeedmultiplier;
-    [SerializeField] private ulong Damage;
-    [SerializeField] private ulong SplashDamage;
-    [SerializeField] private ulong SplashRange;
-    [SerializeField] private ushort MaxAmmo;
-    [SerializeField] private float ReloadTime;
-    [SerializeField] private float BetweenFireTime;
+    [Range(0, 2)]
+    [SerializeField] private float PlayerSpeedmultiplier;
+    
+    [Range(0, 100)]
+    [SerializeField] private double Damage;
+    
+    [Range(0, 5)]
+    [SerializeField] private float attackRange;
+    
+    [Range(0, 10)]
+    [SerializeField] private float attackRate;
+    
+    [Range(0, 100)]
     [SerializeField] private float ManaUse;
 
-    [Header("Настройка патронов")]
-    [SerializeField] private GameObject WeaponAmmoObject; 
-    [SerializeField] private string WeaponAmmoName;
+    [SerializeField] private LayerMask enemyLayers;
+    [SerializeField] private float nextAttackTime;
+    [SerializeField] InputActionReference attackInput;
 
-    public void privateUpdate(){
-        
+    private void OnEnable()
+    {
+        attackInput.action.Enable();
+    }
+
+    private void OnDisable()
+    {
+        attackInput.action.Disable();
+    }
+    
+    public void privateUpdate(string currentEffect)
+    {
+        if (attackInput.action.IsPressed())
+        {
+            TryAttack();
+        }
+    }
+
+    void TryAttack()
+    {
+        if (Time.time < nextAttackTime)
+        {
+            return;
+        }
+        Attack();
+        nextAttackTime = Time.time + attackRate;
+    }
+
+    void Attack()
+    {
+        Collider[] hitEnemies = Physics.OverlapSphere(attackPoint.position, attackRange, enemyLayers);
+        foreach(Collider enemy in hitEnemies)
+        {
+            //uzhe tretiy script i bez etovo koda...
+        }
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+        if (attackPoint == null)
+        {
+            return;
+        }
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(attackPoint.position, attackRange);
     }
 }
